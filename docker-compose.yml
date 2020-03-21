@@ -1,0 +1,52 @@
+version: '3'
+services:
+  db:
+    image: postgres:9.6
+    env_file: .env
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    ports:
+      - 5432:5432
+  redis:
+    image: redis:4.0-alpine
+    expose:
+      - 6379
+  rabbit:
+    image: rabbitmq:3.7-management-alpine
+    expose:
+      - 5672
+    ports:
+      - 15672:15672
+  app:
+    build: .
+    command: python3 manage.py run -h 0.0.0.0 -p 5000
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - 5000:5000
+    depends_on:
+      - db
+      - redis
+  worker:
+    build: .
+    command: celery worker -A celery_worker.celery
+    env_file: .env
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+      - rabbit
+  requestbin:
+    image: clausmith/requestbin
+    ports:
+      - 8000:8000
+    environment:
+      REALM: prod
+      REDIS_URL: "//redis:6379/2" # To avoid collisions with the app
+    depends_on:
+      - redis
+
+volumes:
+  postgres-data:

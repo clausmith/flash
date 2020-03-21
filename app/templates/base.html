@@ -1,0 +1,27 @@
+{% from "utils/wtf.html" import render_field, render_form %}
+{% import "utils/utils.html" as utils %}
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="{{ url_for_asset('runtime.js') }}"></script>
+    <script src="{{ url_for_asset('vendors.js') }}"></script>
+    {% block header_scripts %}
+    <script src="{{ url_for_asset('main.js') }}"></script>
+    {% endblock %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Morgann &amp; Christopher</title>
+  </head>
+  <body class="{{ body_classes }}">
+    {% block body %}
+      <main class="section">
+        {% block main %} {% endblock %}
+      </main>
+      {% block footer %}
+
+      {% endblock %}
+    {% endblock %}
+
+    {% block modal %} {% endblock %}
+  </body>
+</html>

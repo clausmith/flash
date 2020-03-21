@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block header_scripts %}
+  {{ super () }}
+  
+  <link rel="stylesheet" href="{{ url_for_asset('main.css') }}">
+{% endblock %}
+
+{% block body %}
+  <section class="section">
+    <div class="container">
+      <div class="columns">
+        <main class="column">
+          {% block main %}
+
+          {% endblock %}
+        </main>
+        <aside class="column menu is-one-quarter">
+          {% block sidebar %}
+            <ul class="menu-list">
+              <li><a href="{{ url_for('admin.party_list') }}">Guests</a></li>
+              <li><a href="{{ url_for('admin.gift_list') }}">Registry</a></li>
+            </ul>
+          {% endblock %}
+        </aside>
+      </div>
+    </div>
+  </section>
+{% endblock %}

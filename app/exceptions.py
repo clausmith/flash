@@ -1,0 +1,2 @@
+class NoResultsFoundException(Exception):
+    pass
