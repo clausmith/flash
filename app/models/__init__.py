@@ -1,4 +1,6 @@
-from .. import db
+from .user import Role, User
 
-from .role import Role
-from .user import User
+__all__ = [
+    "Role",
+    "User",
+]

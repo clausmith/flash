@@ -17,5 +17,5 @@ uwsgi  --master \
 
 A couple of notes:
 
--   `--enable-threads` is for Sentry and New Relic support
--   `--env APP_CONFIG=production` can take a value of `{development, staging, production}` depending on the required context
+- `--enable-threads` is for Sentry and New Relic support
+- `--env APP_CONFIG=production` can take a value of `{development, staging, production}` depending on the required context

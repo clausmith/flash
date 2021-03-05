@@ -1,0 +1,49 @@
+//
+// OS X style notifications
+//
+
+.growl {
+  position: absolute;
+  top: 45px;
+  right: 15px;
+  width: 285px;
+  z-index: $zindex-growl;
+
+  &.growl-static {
+    position: relative;
+    top: auto;
+    right: auto;
+    z-index: auto;
+  }
+
+  .notification {
+    animation: slide-from-top 1000ms cubic-bezier(0.2, 0.7, 0.5, 1);
+    margin-bottom: 10px;
+  }
+}
+
+@keyframes slide-from-right {
+  0% {
+    transform: translateX(30%);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-from-top {
+  0% {
+    transform: translateY(-30%);
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+  }
+}

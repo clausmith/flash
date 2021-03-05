@@ -1,0 +1,94 @@
+{#  This file was part of Flask-Bootstrap and was modified under the terms of
+ its BSD License. Copyright (c) 2013, Marc Brinkmann. All rights reserved. #}
+
+
+{% macro form_errors(form, hiddens=True) %}
+  {%- if form.errors %}
+    {%- for fieldname, errors in form.errors.items() %}
+      {%- if is_hidden_field(form[fieldname]) and hiddens or not is_hidden_field(form[fieldname]) and hiddens != 'only' %}
+        {%- for error in errors %}
+          <div class="is-danger">{{ error }}</div>
+        {%- endfor %}
+      {%- endif %}
+    {%- endfor %}
+  {%- endif %}
+{%- endmacro %}
+
+{% macro field_help(field, help_text) %}
+  {% if field.errors %}
+    <small class="help is-danger">{{ field.errors|first }}</small>
+  {% elif help_text %}
+    <small class="help">{{ help_text }}</small>
+  {% endif %}
+{% endmacro %}
+
+{% macro render_field(field, required=false, inline=false, label=true) %}
+    {% set help_text = kwargs.pop("help", None) %}
+    {% set classes = [] %}
+
+    {% if field.errors %}
+      {{ classes.append("is-invalid")|default("", true) }}
+    {% endif %}
+
+    <div class="field">
+      {% if field.widget.input_type == 'checkbox' %}
+        <div class="control">
+          <label class="checkbox">
+            {{ field(**kwargs) }}
+            {{ field.label.text|safe }}{{ "*" if required }}
+          </label>
+        </div>
+        {{ field_help(field, help_text ) }}
+      {%- elif field.type == 'RadioField' -%}
+        <div class="control">
+          {% for item in field %}
+            <label class="radio">
+              {{ item(**kwargs) }}
+              {{ item.label.text|safe }}{{ "*" if required }}
+            </label>
+          {% endfor %}
+        </div>
+        {{ field_help(field, help_text ) }}
+      {%- elif field.type == 'SubmitField' -%}
+        <div class="control">
+          {{ field(class_='button is-primary', **kwargs) }}
+        </div>
+      {%- elif field.type == 'FormField' -%}
+        <fieldset>
+          {% if label and field.label.text %}
+            <legend>{{ field.label.text|safe }}{{ "*" if required }}</legend>
+          {% endif %}
+          {% for subfield in field %}
+            {% if not is_hidden_field(subfield) -%}
+              {{ render_field(subfield, required=required, **kwargs) }}
+            {% endif %}
+          {% endfor %}
+        </fieldset>
+      {%- elif field.type == 'SelectField' -%}
+        <div class="control">
+          {% if field.label.text %}
+            <label class="label">{{ field.label.text|safe }}{{ "*" if required }}</label>
+          {% endif %}
+          <div class="select">
+            {{ field(required=required)|safe }}
+          </div>
+        </div>
+      {%- else -%}
+        {% if field.type == "DateField" %}
+          {% set _ = kwargs.update({"data_controller": "flatpickr"}) %}
+        {% endif %}
+
+        {{ classes.append("input")|default("", true) }}
+
+        <div class="control">
+          <label class="label">
+            {{ field.label.text|safe }}{{ "*" if required }}
+          </label>
+
+          {{ field(required=required, class_=" ".join(classes), **kwargs)|safe }}
+
+          {{ field_help(field, help_text ) }}
+        </div>
+      {%- endif -%}
+    </div>
+{% endmacro %}

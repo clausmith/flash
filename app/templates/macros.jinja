@@ -1,0 +1,3 @@
+{% macro status_icon(check, true_icon='fe fe-check', false_icon='fe fe-x') %}
+  <i class="{{ "text-success " ~ true_icon if check else "text-error " ~ false_icon|safe }}"></i>
+{% endmacro %}

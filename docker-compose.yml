@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   db:
     image: postgres:9.6
@@ -11,12 +11,10 @@ services:
     image: redis:4.0-alpine
     expose:
       - 6379
-  rabbit:
+  rabbitmq:
     image: rabbitmq:3.7-management-alpine
     expose:
       - 5672
-    ports:
-      - 15672:15672
   app:
     build: .
     command: python3 manage.py run -h 0.0.0.0 -p 5000
@@ -28,6 +26,7 @@ services:
     depends_on:
       - db
       - redis
+      - mailhog
   worker:
     build: .
     command: celery worker -A celery_worker.celery
@@ -37,7 +36,12 @@ services:
     depends_on:
       - db
       - redis
-      - rabbit
+      - rabbitmq
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - 1025:1025
+      - 8025:8025
   requestbin:
     image: clausmith/requestbin
     ports:

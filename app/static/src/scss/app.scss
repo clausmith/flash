@@ -1,0 +1,93 @@
+$scheme-invert: hsl(0, 0%, 4%);
+
+$link: hsl(217, 71%, 53%);
+$border-light: hsl(0, 0%, 93%);
+
+$family-sans-serif: sans-serif;
+
+$weight-normal: 500;
+$weight-bold: 600;
+
+$zindex-growl: 1090;
+
+$box-radius: 0;
+
+$menu-list-link-padding: 0.5rem 1rem;
+$menu-item-active-background-color: transparent;
+$menu-item-active-color: $link;
+
+$table-cell-border: solid 1px $border-light;
+$table-head-cell-border-width: 0 0 1px;
+
+$gap: 32px;
+$column-gap: 32px;
+
+@import "~bulma/bulma";
+
+@import "growl";
+
+.app-wrapper {
+  @extend .columns;
+  @extend .is-gapless;
+  background: #f6f9fc;
+  min-height: 100vh;
+  margin-bottom: 0;
+}
+
+.logo {
+  font-size: 36px;
+  text-align: center;
+  margin-bottom: $gap;
+}
+
+.submit-field {
+  margin-top: $gap / 2;
+}
+
+.wrapper {
+  height: 100vh;
+}
+
+.main-wrapper {
+  padding: $column-gap;
+}
+
+.app-header {
+  border-bottom: solid 1px $border-light;
+}
+
+.navbar-brand .navbar-item {
+  font-size: $size-4;
+  padding: 0.5rem 1rem;
+}
+
+.sidebar {
+  background: #fff;
+  border-right: solid 1px $border-light;
+  position: sticky;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  .menu {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    font-size: 0.875rem;
+  }
+
+  .menu-end {
+    border-top: solid 1px #dbdbdb;
+    padding-bottom: $gap;
+  }
+}
+
+.toolbar {
+  padding: $column-gap 0.75rem;
+}
+
+.page-title {
+  font-size: $size-4;
+  font-weight: $weight-semibold;
+  margin-bottom: 0;
+}

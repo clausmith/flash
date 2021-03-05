@@ -1,0 +1,11 @@
+{% extends "auth/base.jinja" %}
+
+{% block main %}
+<div class="columns is-centered">
+  <div class="column is-6">
+    <div class="logo">Flash</div>
+    <h1 class="subtitle">Please confirm your account</h1>
+    <p>We've sent you an email with a link to confirm your email address and complete the sign-up. Didn't get the email? <a href="{{ url_for('auth.resend_confirmation') }}" class="btn is-link">Re-send</a></p>
+  </div>
+</div>
+{% endblock %}

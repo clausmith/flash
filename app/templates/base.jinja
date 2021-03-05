@@ -1,0 +1,65 @@
+{% from "utils/wtf.jinja" import address_form, render_field, form_errors %}
+{% import "macros.jinja" as macros %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% if title %}{{ title }} | Flash{% else %}Flash{% endif %}</title>
+
+    <link rel="stylesheet" href="https://use.typekit.net/xhw8jki.css">
+    <link rel="stylesheet" href="{{ url_for_asset('main.css') }}">
+
+    <script src="https://kit.fontawesome.com/8acae45b3d.js" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    {% block navbar_wrapper %}
+    <div class="navbar">
+      <div class="navbar-brand">
+        <a href="/" class="navbar-item">Flash</a>
+      </div>
+      {% block navbar %}
+        <div class="navbar-menu">
+          <div class="navbar-end">
+            <a href="{{ url_for('auth.login') }}" class="navbar-item">Login</a>
+            {#<a href="{{ url_for('main.register') }}" class="navbar-item">Sign Up</a>#}
+          </div>
+        </div>
+      {% endblock %}
+    </div>
+    {% endblock %}
+    {% block main_wrapper %}
+    <div class="section">
+      <div class="container">
+        {% block main %}
+
+        {% endblock %}
+      </div>
+    </div>
+    {% endblock %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="growl">
+        {% for category, message in messages %}
+          <div class="notification is-{{ category }}" role="alert">
+            <button class="delete"></button>
+            {{ message }}
+          </div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block modal %}
+
+    {% endblock %}
+
+    <script src="{{ url_for_asset('vendors.js') }}"></script>
+    <script src="{{ url_for_asset('runtime.js') }}"></script>
+    <script src="{{ url_for_asset('main.js') }}"></script>
+    {% block footer_scripts %}
+    {% endblock %}
+  </body>
+</html>

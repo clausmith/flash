@@ -1,127 +1,67 @@
-import hashlib
-import pytz
-import secrets
-
+import uuid
 from datetime import datetime
-from flask import current_app, request, url_for
-from flask_login import UserMixin, AnonymousUserMixin
-from itsdangerous import BadSignature, TimedJSONWebSignatureSerializer as Serializer
-from sqlalchemy import and_
-from sqlalchemy.ext.associationproxy import association_proxy
+from decimal import *
+from enum import Enum
+
+import pytz
+from flask import url_for
+from flask_login import AnonymousUserMixin, UserMixin
+from money.currency import Currency
+from money.money import Money
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import backref
-from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.orm import backref, validates
+from sqlalchemy.sql import expression
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from .. import db, login_manager
-
-from .mixins import IdMixin, UUID
-
-USER_COLOURS = [
-    "bg-blue",
-    "bg-azure",
-    "bg-indigo",
-    "bg-purple",
-    "bg-pink",
-    "bg-red",
-    "bg-orange",
-    "bg-yellow",
-    "bg-lime",
-    "bg-green",
-    "bg-teal",
-    "bg-cyan",
-]
+from ..email import send_email
+from ..enums import ApprovalStatus, Interval, IntervalCounts, Permission
+from ..utils import generate_token, verify_token
+from .helpers import UUID, IdMixin, TimezoneType, same_as
 
 
-class User(db.Model, IdMixin, UserMixin):
+class User(UserMixin, IdMixin, db.Model):
     __tablename__ = "users"
-    __searchable__ = ["fname", "lname", "phone_number", "email"]
-    __chrononaut_untracked__ = ["last_seen"]
-    __chrononaut_hidden__ = ["password_hash"]
-    email = db.Column(db.Text, unique=True, index=True)
-    password_hash = db.Column(db.Text)
-    confirmed = db.Column(db.Boolean, default=False)
-    confirmed_at = db.Column(db.DateTime(timezone=True))
-    confirmed_ip = db.Column(db.Text)
-    stripe_id = db.Column(db.Text, unique=True, index=True)
-    last_seen = db.Column(
-        db.DateTime(timezone=True), default=lambda: datetime.now(pytz.utc)
-    )
-    active = db.Column(db.Boolean, default=True)
-    api_key = db.Column(db.Text, unique=True)
-    avatar_url = db.Column(db.Text)
-    colour = db.Column(db.Text)
+    __prefix__ = "u"
     fname = db.Column(db.Text)
     lname = db.Column(db.Text)
-    phone_number = db.Column(db.Text)
+    email = db.Column(db.Text, unique=True, index=True, nullable=False)
+    password_hash = db.Column(db.Text)
+    confirmed = db.Column(
+        db.Boolean, default=False, server_default=expression.false(), nullable=False
+    )
+    confirmed_at = db.Column(db.DateTime(timezone=True))
+    preregistered = db.Column(
+        db.Boolean, default=False, server_default=expression.false(), nullable=False
+    )
+    confirmed_ip = db.Column(db.Text)
+    last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(pytz.utc))
+    active = db.Column(db.Boolean, default=True, server_default=expression.true(), nullable=False)
+    avatar_url = db.Column(db.Text)
     role_id = db.Column(UUID, db.ForeignKey("roles.id"))
-    role = db.relationship("Role")
+    role = db.relationship("Role", foreign_keys=[role_id])
 
-    def __init__(self, *args, **kwargs):
-        super(User, self).__init__(*args, **kwargs)
-        if not self.api_key:
-            self.api_key = secrets.token_urlsafe()
-
-    def __repr__(self):
-        return "<User {}>".format(self.email)
-
-    @classmethod
-    def preregister(cls, **kwargs):
-        ip = ""
-        if request.access_route:
-            ip = request.access_route[0]
-        else:
-            ip = request.remote_addr
-        user = cls(**kwargs)
-        active = False
-        db.session.add(user)
-        db.session.commit()
-        return user
-
-    @classmethod
-    def load_from_token(cls, token):
-        s = Serializer(current_app.config["SECRET_KEY"])
-        try:
-            data = s.loads(token)
-        except BadSignature as e:
-            return None
-        return cls.query.get(data.get("uuid"))
-
-    @hybrid_property
-    def hash(self):
-        return self.id.hex[:8]
-
-    @property
-    def colour(self):
-        return USER_COLOURS[self.id.int % len(USER_COLOURS)]
+    current_timezone = db.Column(TimezoneType, default=same_as("default_timezone"))
 
     @hybrid_property
     def name(self):
-        if not self.fname:
-            return self.email
-        return "{} {}".format(self.fname or "", self.lname or "")
+        return f"{self.fname} {self.lname}"
 
     @name.expression
     def name(cls):
         return cls.fname + " " + cls.lname
 
-    @property
-    def initials(self):
-        initials = ""
-        if self.fname:
-            initials += self.fname[0]
-        if self.lname:
-            initials += self.lname[0]
-        return initials
+    @validates("email")
+    def validate_email(self, key, email):
+        return email.lower()
+
+    @hybrid_property
+    def hash(self):
+        return self.id.hex[:8]
 
     @hash.setter
     def hash(self, hash):
         raise AttributeError("Hash is a read-only attribute")
-
-    @property
-    def md5(self):
-        m = hashlib.md5()
-        m.update(self.email.encode("utf-8"))
-        return m.hexdigest()
 
     @property
     def password(self):
@@ -132,20 +72,30 @@ class User(db.Model, IdMixin, UserMixin):
         self.password_hash = generate_password_hash(password)
 
     def verify_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return password and check_password_hash(self.password_hash, password)
 
-    def generate_token(self, expiration=3600):
-        s = Serializer(current_app.config["SECRET_KEY"], expiration)
-        return s.dumps({"uuid": self.id.hex})
+    def generate_token(self, expiry=3600, **kwargs):
+        return generate_token({"uuid": self.id.hex, **kwargs}, expiry)
 
     def verify_token(self, token):
-        s = Serializer(current_app.config["SECRET_KEY"])
-        try:
-            data = s.loads(token)
-        except BadSignature as e:
+        payload = verify_token(token)
+        if not payload.get("uuid") == self.id.hex:
             return False
-        if data.get("uuid") != self.id.hex:
-            return False
+        return payload
+
+    @classmethod
+    def load_from_token(cls, token):
+        payload = verify_token(token)
+        if not payload.get("uuid"):
+            return None
+        return cls.query.get(payload["uuid"])
+
+    @classmethod
+    def reset_password(cls, token, new_password):
+        user = cls.load_from_token(token)
+        if not user:
+            return None
+        user.password = new_password
         return True
 
     def confirm(self, token, ip):
@@ -157,12 +107,26 @@ class User(db.Model, IdMixin, UserMixin):
         db.session.commit()
         return True
 
-    def reset_password(self, token, new_password):
-        if not self.verify_token(token):
-            return False
-        self.password = new_password
-        db.session.commit()
-        return True
+    def send_password_reset(self):
+        token = self.generate_token()
+        url = url_for("auth.password_reset", token=token, _external=True)
+        send_email(
+            self.email,
+            "[Bureau] Password Reset Instructions",
+            "email/password_reset",
+            token_url=url,
+            user=self,
+        )
+
+    def send_email_confirmation(self):
+        token = self.generate_token()
+        send_email(
+            self.email,
+            "Please confirm your account",
+            "email/confirm",
+            user=self,
+            token_url=url_for("auth.confirm", token=token, _external=True),
+        )
 
     def change_email(self, token, new_email):
         if not self.verify_token(token):
@@ -177,8 +141,14 @@ class User(db.Model, IdMixin, UserMixin):
         self.last_seen = datetime.now(pytz.utc)
         db.session.commit()
 
-    def can(self, perm):
-        return self.role is not None and self.role.has_permission(perm)
+    @staticmethod
+    def preregister(email, send_welcome=True):
+        u = User(email=email, preregister=True)
+        db.session.add(u)
+        db.session.commit()
+
+    def __repr__(self):
+        return "<User %r>" % self.email
 
 
 class AnonymousUser(AnonymousUserMixin):
@@ -195,3 +165,47 @@ login_manager.anonymous_user = AnonymousUser
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
+
+
+# Both users and entities can have roles
+class Role(db.Model):
+    __tablename__ = "roles"
+    id = db.Column(UUID, default=uuid.uuid4, primary_key=True)
+    name = db.Column(db.Text)
+    default = db.Column(
+        db.Boolean, default=False, server_default=expression.false(), nullable=False
+    )
+    description = db.Column(db.Text)
+    permissions = db.Column(db.BigInteger, default=0)
+
+    def __init__(self, **kwargs):
+        super(Role, self).__init__(**kwargs)
+        if self.permissions is None:
+            self.permissions = 0
+
+    def add_permission(self, perm):
+        if not self.has_permission(perm):
+            self.permissions += perm
+
+    def remove_permission(self, perm):
+        if self.has_permission(perm):
+            self.permissions -= perm
+
+    def reset_permissions(self):
+        self.permissions = 0
+
+    def has_permission(self, perm):
+        return self.permissions & perm == perm
+
+    @staticmethod
+    def setup_roles():
+        default_roles = [
+            ("Admin", Permission.ADMIN, False),
+            ("Employee", Permission.READ + Permission.EDIT, True),
+        ]
+        for name, perms, default in default_roles:
+            role = Role.query.filter_by(name=name).first()
+            if not role:
+                role = Role(name=name, permissions=perms, default=default)
+                db.session.add(role)
+        db.session.commit()

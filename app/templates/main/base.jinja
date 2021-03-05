@@ -1,0 +1,68 @@
+{% extends "base.jinja" %}
+
+{% block navbar_wrapper %}
+
+{% endblock %}
+
+{% block main_wrapper %}
+<div class="app">
+  <div class="app-wrapper">
+    <div class="sidebar column is-2">
+      <div class="navbar-brand">
+        <a href="/" class="navbar-item">Flash</a>
+      </div>
+      <nav class="menu">
+        <ul class="menu-list menu-start">
+        </ul>
+      </nav>
+    </div>
+    <div class="column">
+      <header class="app-header">
+        <nav class="navbar">
+          <div class="navbar-menu">
+            <div class="navbar-end">
+              <div class="navbar-item has-dropdown is-hoverable">
+                <a href="#" class="navbar-link">{{ current_user.email }}</a>
+                <div class="navbar-dropdown">
+                  <a href="{{ url_for("auth.logout") }}" class="navbar-item">Logout</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </nav>
+        {% block toolbar %}
+
+        {% endblock %}
+      </header>
+
+      <div class="main-wrapper container">
+        <div class="columns">
+          <div class="column">
+            {% block main %}
+              {% block page_header %}
+                <div class="level">
+                  <div class="level-left">
+                    <h1 class="level-item page-title">{{ page_title }}</h1>
+                  </div>
+                  <div class="level-right">
+                    {% block page_options %}
+                    {% endblock %}
+                  </div>
+                </div>
+              {% endblock %}
+              {% block page_body_wrapper %}
+                {% if section_title %}<h3 class="section-title">{{ section_title }}</h3>{% endif %}
+                <div class="box">
+                  {% block page_body %}
+
+                  {% endblock %}
+                </div>
+              {% endblock %}
+            {% endblock %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
