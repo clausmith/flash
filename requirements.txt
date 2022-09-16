@@ -38,7 +38,7 @@ jedi==0.16.0
 Jinja2==2.11.1
 kombu==4.6.8
 konch==4.2.2
-Mako==1.1.2
+Mako==1.2.2
 MarkupSafe==1.1.1
 marshmallow==3.5.1
 marshmallow-sqlalchemy==0.22.3
